@@ -1,28 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
+import { Provider, useSelector, useDispatch } from 'react-redux';
+import { getError } from './store/errors';
 import store from './store/store';
-import * as actions from './store/actions';
+import {
+  taskClosed,
+  titleUpdate,
+  taskDeleted,
+  getTasks,
+  loadTasks,
+  getTaskLoadingStatus,
+  createTask,
+} from './store/task-slice';
 
 const App = () => {  
-  const [tasks, setTasks] = useState(store.getState());
+  const tasks = useSelector(getTasks);
+  const inLoading = useSelector(getTaskLoadingStatus);
+  const error = useSelector(getError);
+  const dispatch = useDispatch();
 
-  // Add listener to update tasks state
-  useEffect(() => { store.subscribe(() => setTasks(store.getState()) ); }, []);
+  useEffect(() => { dispatch(loadTasks()); }, []);
 
-  const closeHandle = (id) => () => store.dispatch(actions.taskClosed(id));
-  const updateTitleHandle = (id) => () => store.dispatch(actions.titleUpdate(id));
-  const deleteTaskHandle = (id) => () => store.dispatch(actions.taskDeleted(id));
+  if (inLoading) return <h1>Loading</h1>;
+  if (error) return <p>{error}</p>;
 
   return (
     <>
-      <h1>App</h1>
+      <h1>Tasks</h1>
+      <br />
+      <button onClick={() => dispatch(createTask(`My new task`, false))}>Add task</button>
       <ul>
         {tasks.map(({ id, title, completed}) => 
-          <li key={id}>
-            {`${title} [id: ${id}]: ${ completed ? 'завершена' : 'не завершена'} `}
-            <button onClick={closeHandle(id)}>Завершить</button>&nbsp;
-            <button onClick={updateTitleHandle(id)}>Изменить название</button>&nbsp;
-            <button onClick={deleteTaskHandle(id)}>Удалить</button>
+          <li key={id + Math.random()}>
+            {` [id: ${id}]: ${title} ${ completed ? 'завершена' : 'не завершена'} `}<br/>
+            <button onClick={() => dispatch(taskClosed(id))}>Завершить</button>&nbsp;
+            <button onClick={() => dispatch(titleUpdate(id))}>Изменить название</button>&nbsp;
+            <button onClick={() => dispatch(taskDeleted(id))}>Удалить</button>
+            <hr />
           </li>)}
       </ul>
     </>);
@@ -30,7 +44,7 @@ const App = () => {
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
+  <Provider store={store}>
     <App />
-  </React.StrictMode>
+  </Provider>
 );
